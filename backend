@@ -1,0 +1,87 @@
+import speech_recognition as sr
+import pyttsx3
+import datetime
+import requests
+from bs4 import BeautifulSoup
+
+engine = pyttsx3.init()
+
+def speak(text):
+    engine = pyttsx3.init()
+    engine.say(text)
+    engine.runAndWait()
+
+def print_and_speak(text):
+    print(text)
+    speak(text)
+
+def wish_me():
+    hour = datetime.datetime.now().hour
+    if 0 <= hour < 12:
+        print_and_speak("Good Morning!")
+    elif 12 <= hour < 18:
+        print_and_speak("Good Afternoon!")
+    else:
+        print_and_speak("Good Evening!")
+
+    print_and_speak("I am GROOVY. How would you like to input your query? Type 'text' or 'voice'.")
+
+def take_command():
+    while True:
+        choice = input().lower()
+        if choice == 'text':
+            print_and_speak("Please enter your query:")
+            query = input().lower()
+            return query
+        elif choice == 'voice':
+            recognizer = sr.Recognizer()
+            with sr.Microphone() as source:
+                print_and_speak("Listening...")
+                recognizer.pause_threshold = 1
+                audio = recognizer.listen(source)
+            try:
+                print_and_speak("Recognizing...")
+                query = recognizer.recognize_google(audio, language='en-in')
+                print_and_speak(f"You said: {query}\n")
+                return query
+            except Exception as e:
+                print(e)
+                print_and_speak("Sorry, I couldn't understand that. Please try again.")
+        else:
+            print_and_speak("Invalid choice. Please enter 'text' or 'voice'.")
+
+def search_on_web(query):
+    try:
+        url = f"https://www.google.com/search?q={query}"
+        headers = {'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36'}
+        response = requests.get(url, headers=headers)
+        
+        if response.status_code == 200:
+            soup = BeautifulSoup(response.text, 'html.parser')
+            search_results = soup.find_all('div', class_='tF2Cxc')
+            
+            if search_results:
+            
+                result_text = search_results[0].get_text(separator='\n')
+                print_and_speak(result_text)
+            else:
+                print_and_speak("No information found on the web.")
+        else:
+            print_and_speak("Failed to retrieve search results.")
+    except Exception as e:
+        print(e)
+        print_and_speak("An error occurred while fetching information from the web.")
+
+if __name__ == "__main__":
+    wish_me()
+
+    while True:
+        query = take_command()
+
+        if query:
+            if 'exit' in query.lower():
+                print_and_speak("Goodbye!")
+                break
+
+            print_and_speak('Searching the web...')
+            search_on_web(query)
